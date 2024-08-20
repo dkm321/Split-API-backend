@@ -248,3 +248,20 @@ async def query_past_actions(request: schemas.QueryActionsRequest, db: Session =
         if transaction:
             results[description] = transaction.action
     return results
+
+@app.delete("/groups/{group_id}/files/{file_id}")
+def delete_file(group_id: int, file_id: int, db: Session = Depends(get_db)):
+    # Find the file by ID
+    file = db.query(models.File).filter(models.File.id == file_id, models.File.group_id == group_id).first()
+    
+    if not file:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    # Delete associated transactions
+    db.query(models.Transaction).filter(models.Transaction.file_id == file.id).delete()
+
+    # Delete the file
+    db.delete(file)
+    db.commit()
+
+    return {"detail": "File and associated transactions deleted successfully"}
