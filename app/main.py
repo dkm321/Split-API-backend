@@ -16,10 +16,13 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-origins = [
+local_network = "10.0.0."
+origins=[
     "http://localhost",
     "http://localhost:3000",
+    *[f"http://{local_network}{i}:3000" for i in range(1, 255)],
 ]
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -54,15 +57,35 @@ def translate_headers(df):
             'Name': 'Description', 
             'Memo': 'Memo', 
             'Amount': 'Amount'
+        },
+        'AMEX': {
+            'Date': 'Transaction_Date',  
+            'Description': 'Description',
+            'Amount': 'Amount'
+        },
+        'Wells Fargo': {
+            'Date': 'Transaction_Date',  
+            'Description': 'Description',
+            'Empty1': 'Empty1',
+            'Empty2': 'Empty2',
+            'Amount': 'Amount'
         }
     }
 
     for bank, headers in bank_headers.items():
         if set(headers.keys()).issubset(set(df.columns)):
-            return df.rename(columns=headers)
+            df = df.rename(columns=headers)
+
+            if bank == 'AMEX':
+                df['Amount'] = df['Amount'] * -1
+                
+            return df
     
     return None
 
+@app.get("/")
+async def root():
+    return {"message": "CORS should be enabled"}
 
 @app.post("/groups/", response_model=schemas.UserGroup)
 def create_group(group: schemas.UserGroupCreate, db: Session = Depends(get_db)):
