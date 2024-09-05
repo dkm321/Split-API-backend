@@ -51,6 +51,8 @@ class UserGroupBase(BaseModel):
     name: str
     person1: str
     person2: str
+    is_hidden: bool
+    is_archived: bool
 
 class UserGroupCreate(UserGroupBase):
     pass

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -9,6 +9,8 @@ class UserGroup(Base):
     name = Column(String, unique=True, index=True)
     person1 = Column(String)
     person2 = Column(String)
+    is_hidden = Column(Boolean, default=False)
+    is_archived = Column(Boolean, default=False)
 
     files = relationship('File', back_populates='group')
 

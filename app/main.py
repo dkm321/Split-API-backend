@@ -103,7 +103,7 @@ def read_group(group_id: int, db: Session = Depends(get_db)):
 
 @app.get("/groups/", response_model=List[schemas.UserGroup])
 def read_groups(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    groups = db.query(models.UserGroup).offset(skip).limit(limit).all()
+    groups = db.query(models.UserGroup).filter(models.UserGroup.is_hidden == False).offset(skip).limit(limit).all()
     return groups
 
 @app.get("/groups/{group_id}/files", response_model=List[schemas.File])
@@ -150,7 +150,7 @@ async def upload_file(group_id: int,
                       db: Session = Depends(get_db)):
     
     # Fetch the group from the database
-    group = db.query(models.UserGroup).filter(models.UserGroup.id == group_id).first()
+    group = crud.get_group(db, group_id=group_id)
 
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
@@ -205,7 +205,7 @@ async def upload_file(group_id: int,
 
 @app.post("/groups/{group_id}/transactions", response_model=List[schemas.Transaction])
 async def save_transactions(group_id: int, transactions_data: List[schemas.TransactionCreate], db: Session = Depends(get_db)):
-    group = db.query(models.UserGroup).filter(models.UserGroup.id == group_id).first()
+    group = crud.get_group(db, group_id=group_id)
     
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
@@ -288,3 +288,30 @@ def delete_file(group_id: int, file_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"detail": "File and associated transactions deleted successfully"}
+
+@app.put("/groups/{group_id}/hide")
+async def hide_group(group_id: int, db: Session = Depends(get_db)):
+    group = crud.get_group(db, group_id)
+    
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    else:
+        group.is_hidden = True  # Set the flag to hide the group
+        db.commit()
+        # db.refresh(group)
+    
+        return {"message": "Group hidden successfully"}
+
+@app.patch("/groups/{group_id}/archive")
+async def archive_group(group_id: int, db: Session = Depends(get_db)):
+    group = crud.get_group(db, group_id)
+    
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    group.is_archived = True  # Set the flag to hide the group
+    
+    db.commit()
+    db.refresh(group)
+
+    return {"message": "Group archived successfully"}
