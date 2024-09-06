@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional
+from datetime import datetime
 
 class TransactionBase(BaseModel):
     date: str
@@ -51,8 +52,13 @@ class UserGroupBase(BaseModel):
     name: str
     person1: str
     person2: str
-    is_hidden: bool
-    is_archived: bool
+    is_hidden: Optional[bool] = False
+    is_archived: Optional[bool] = False
+    date_created: Optional[datetime] = None
+    is_settled: Optional[bool] = False
+
+    class Config:
+        orm_mode = True
 
 class UserGroupCreate(UserGroupBase):
     pass
@@ -64,6 +70,8 @@ class UserGroup(UserGroupBase):
     class Config:
         orm_mode = True
 
-class GroupBalance(BaseModel):
+class GroupBalance(UserGroupBase):
+    id: int
     balance_person1: float
     balance_person2: float
+    

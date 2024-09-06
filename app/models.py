@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
+import datetime
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -11,6 +12,8 @@ class UserGroup(Base):
     person2 = Column(String)
     is_hidden = Column(Boolean, default=False)
     is_archived = Column(Boolean, default=False)
+    is_settled = Column(Boolean, default=False)
+    date_created = Column(DateTime, default=datetime.datetime.now(datetime.UTC))
 
     files = relationship('File', back_populates='group')
 

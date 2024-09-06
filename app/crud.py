@@ -37,6 +37,9 @@ def create_group(db: Session, group: schemas.UserGroupCreate):
 def get_group(db: Session, group_id: int):
     return db.query(models.UserGroup).filter(models.UserGroup.id == group_id).first()
 
+def get_groups(db: Session):
+    return db.query(models.UserGroup).all()
+
 def create_transaction(db: Session, transaction: schemas.TransactionCreate):
     db_transaction = models.Transaction(**transaction.model_dump())
     db.add(db_transaction)

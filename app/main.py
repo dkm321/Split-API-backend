@@ -94,6 +94,43 @@ def create_group(group: schemas.UserGroupCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Group already registered")
     return crud.create_group(db=db, group=group)
 
+@app.get("/groups/balances", response_model=List[schemas.GroupBalance])
+def get_group_balances(db: Session = Depends(get_db)):
+    # Fetch all groups
+    groups = crud.get_groups(db)
+    
+    if not groups:
+        raise HTTPException(status_code=404, detail="No groups found")
+    
+    group_balances = []
+    
+    # Iterate over each group to calculate balances
+    for group in groups:
+        balance_person1 = 0
+        balance_person2 = 0
+
+        # Get all files for the current group
+        files = crud.get_files_by_group_id(db, group_id=group.id)
+
+        # Sum the balances from the files
+        for file in files:
+            balance_person1 += file.balance_person1
+            balance_person2 += file.balance_person2
+
+        # Create a GroupBalance schema and add it to the list
+        group_balance = schemas.GroupBalance(
+            id=group.id,
+            name=group.name, 
+            person1=group.person1, 
+            person2=group.person2,
+            balance_person1=balance_person1, 
+            balance_person2=balance_person2
+        )
+        group_balances.append(group_balance)
+
+    # Return the list of group balances
+    return group_balances
+
 @app.get("/groups/{group_id}", response_model=schemas.UserGroup)
 def read_group(group_id: int, db: Session = Depends(get_db)):
     db_group = crud.get_group(db, group_id=group_id)
@@ -251,7 +288,8 @@ def get_group_balance(group_id: int, db: Session = Depends(get_db)):
         balance_person1 += file.balance_person1
         balance_person2 += file.balance_person2
 
-    return schemas.GroupBalance(balance_person1=balance_person1, balance_person2=balance_person2)
+    return schemas.GroupBalance(id=group_id, balance_person1=balance_person1, balance_person2=balance_person2)
+
 
 @app.post("/transactions/query-actions")
 async def query_past_actions(request: schemas.QueryActionsRequest, db: Session = Depends(get_db)):
@@ -304,6 +342,7 @@ async def hide_group(group_id: int, db: Session = Depends(get_db)):
 
 @app.patch("/groups/{group_id}/archive")
 async def archive_group(group_id: int, db: Session = Depends(get_db)):
+
     group = crud.get_group(db, group_id)
     
     if not group:
@@ -312,6 +351,79 @@ async def archive_group(group_id: int, db: Session = Depends(get_db)):
     group.is_archived = True  # Set the flag to hide the group
     
     db.commit()
-    db.refresh(group)
+    # db.refresh(group)
 
     return {"message": "Group archived successfully"}
+
+@app.patch("/groups/{group_id}/restore")
+async def archive_group(group_id: int, db: Session = Depends(get_db)):
+
+    # body = request.json()  # This reads and parses the body as JSON
+    # print(f"Request Body: {body}") 
+
+    group = crud.get_group(db, group_id)
+    
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    group.is_archived = False  # Set the flag to hide the group
+    
+    db.commit()
+    # db.refresh(group)
+
+    return {"message": "Group restored successfully"}
+
+@app.patch("/groups/{group_id}/settle")
+async def settle_group(group_id: int, db: Session = Depends(get_db)):
+    group = crud.get_group(db, group_id)
+    
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    # files = crud.get_files_by_group_id(group_id)
+    
+    # group_balance_person1 = 0
+    # group_balance_person2 = 0
+
+    # for file in files:
+    #     balance_person1 += file.balance_person1
+    #     balance_person2 += file.balance_person2
+    
+    # settle_amount = group_balance_person1 - group_balance_person2
+    
+    # if settle_amount < 0:
+        # the determine who owes who
+
+    # settle_description = f"Settle Balance for Group {group.name}"
+
+    # # Create a transaction to settle the balance
+    # settle_transaction = models.Transaction(
+    #     group_id=group.id,
+    #     description=settle_description,
+    #     amount=total_balance,
+    #     transaction_type="settle"
+    # )
+
+    # will need to create a file to add the settled transaction
+
+    # db.add(settle_transaction)
+    
+    group.is_settled = True
+    db.commit()
+    db.refresh(group)
+    
+    return {"message": "Group settled successfully", "group": group}
+
+# Unsettle a Group
+@app.patch("/groups/{group_id}/unsettle")
+async def unsettle_group(group_id: int, db: Session = Depends(get_db)):
+    group = crud.get_group(db, group_id)
+    
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    group.is_settled = False
+    db.commit()
+    db.refresh(group)
+    
+    return {"message": "Group unsettled successfully", "group": group}
