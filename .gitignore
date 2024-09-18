@@ -1,4 +1,5 @@
 .venv/
 uploads/
 *.db
+*.db-journal
 __pycache__/
